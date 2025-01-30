@@ -110,48 +110,29 @@ class ResumeOptimizer:
             'job_requirements': job_requirements
         })
         
-        # Create optimized PDF (single page)
-        optimized_pdf = self._create_optimized_pdf(resume_file)
+        # Generate a concise summary of changes
+        summary_chain = LLMChain(
+            llm=self.llm,
+            prompt=PromptTemplate(
+                input_variables=["analysis"],
+                template="""Based on the resume analysis, provide a clear, bullet-point summary of the key changes and improvements recommended. Focus on specific, actionable items.
+
+                Analysis:
+                {analysis}
+
+                Format your response as bullet points, with each point being a specific recommendation. Be concise and clear."""
+            )
+        )
+        changes_summary = summary_chain.run(optimization_analysis)
         
-        # Summarize key changes
-        changes_summary = self._summarize_changes(optimization_analysis)
+        # Create optimized PDF
+        optimized_pdf = self._create_optimized_pdf(resume_file)
         
         return {
             'analysis': optimization_analysis,
             'changes_summary': changes_summary,
             'optimized_resume': optimized_pdf
         }
-    
-    def _summarize_changes(self, optimization_analysis):
-        """
-        Create a concise summary of recommended changes
-        """
-        try:
-            summary_chain = LLMChain(
-                llm=self.llm, 
-                prompt=PromptTemplate(
-                    input_variables=["optimization_analysis"],
-                    template="""
-                    Provide a concise, bullet-point summary of the key recommended changes 
-                    from the resume optimization analysis. Focus on the most impactful 
-                    suggestions that would improve the resume's alignment with the job requirements.
-                    
-                    Optimization Analysis:
-                    {optimization_analysis}
-                    
-                    Summary should be:
-                    - No more than 3-5 key points
-                    - Actionable and specific
-                    - Highlight the most critical improvements
-                    """
-                )
-            )
-            
-            summary = summary_chain.run(optimization_analysis)
-            return summary
-        except Exception as e:
-            logging.error(f"Error generating changes summary: {e}")
-            return "No significant changes recommended."
     
     def _create_optimized_pdf(self, original_resume):
         """
