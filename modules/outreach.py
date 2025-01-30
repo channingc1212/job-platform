@@ -2,10 +2,25 @@ from langchain.prompts import PromptTemplate
 from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain
 import os
+from dotenv import load_dotenv
+import logging
 
 class OutreachManager:
     def __init__(self):
-        self.llm = ChatOpenAI(temperature=0.7)
+        load_dotenv()  # Load environment variables from .env file
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            raise ValueError("OPENAI_API_KEY not found in environment variables")
+        
+        # Configure for project-specific API key
+        os.environ["OPENAI_API_KEY"] = api_key
+        
+        self.llm = ChatOpenAI(
+            temperature=0.7,
+            model_name="gpt-3.5-turbo",
+            openai_api_key=api_key,
+            openai_api_base="https://api.openai.com/v1"  # Explicitly set API base
+        )
         self.prompt = PromptTemplate(
             input_variables=["company_name", "contact_name", "role", "background", "interests"],
             template="""
