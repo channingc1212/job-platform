@@ -252,9 +252,16 @@ class InterviewPrepManager:
                     logging.error(f"Failed to parse interview data: {str(e)}")
                     return None
 
+                # Convert to dict and ensure sources are included
+                review_dict = company_review.__dict__
+                review_dict['sources'] = review_result.get('citations', [])
+                
+                interview_dict = interview_process.__dict__
+                interview_dict['sources'] = interview_result.get('citations', [])
+                
                 return {
-                    "company_review": company_review.__dict__,
-                    "interview_process": interview_process.__dict__
+                    "company_review": review_dict,
+                    "interview_process": interview_dict
                 }
 
             except json.JSONDecodeError as e:

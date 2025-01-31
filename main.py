@@ -384,11 +384,21 @@ with interview_tab:
                         for metric, value in review['additional_metrics'].items():
                             st.metric(metric.replace("_", " ").title(), f"{value:.1f}/5.0")
                     
-                    # Display review sources
+                    # Display review sources with citations
                     if review.get('sources'):
-                        st.subheader("📚 Review Sources")
-                        for source in review['sources']:
-                            st.markdown(f"🔗 [{source}]({source})")
+                        st.write("")
+                        st.markdown("""<div style='background-color: #f0f2f6; padding: 1rem; border-radius: 0.5rem;'>
+                            <p style='font-size: 1rem; color: #333;'><strong>📚 Sources for Company Information:</strong></p>
+                            <div style='margin: 0.5rem 0;'></div>
+                        """, unsafe_allow_html=True)
+                        
+                        for i, source in enumerate(review['sources'], 1):
+                            st.markdown(f"""<div style='margin-left: 1rem;'>
+                                <p style='font-size: 0.9rem; margin-bottom: 0.5rem;'>
+                                    {i}. <a href='{source}' target='_blank' style='color: #1e88e5; text-decoration: underline;'>{source}</a>
+                                </p>
+                            </div>""", unsafe_allow_html=True)
+                        st.markdown("</div>", unsafe_allow_html=True)
                     
                     st.divider()
                     
@@ -419,11 +429,21 @@ with interview_tab:
                     for tip in interview['tips']:
                         st.write(f"- {tip}")
                     
-                    # Display interview sources
+                    # Display interview sources with citations
                     if interview.get('sources'):
-                        st.subheader("📚 Interview Process Sources")
-                        for source in interview['sources']:
-                            st.markdown(f"🔗 [{source}]({source})")
+                        st.write("")
+                        st.markdown("""<div style='background-color: #f0f2f6; padding: 1rem; border-radius: 0.5rem;'>
+                            <p style='font-size: 1rem; color: #333;'><strong>📚 Sources for Interview Information:</strong></p>
+                            <div style='margin: 0.5rem 0;'></div>
+                        """, unsafe_allow_html=True)
+                        
+                        for i, source in enumerate(interview['sources'], 1):
+                            st.markdown(f"""<div style='margin-left: 1rem;'>
+                                <p style='font-size: 0.9rem; margin-bottom: 0.5rem;'>
+                                    {i}. <a href='{source}' target='_blank' style='color: #1e88e5; text-decoration: underline;'>{source}</a>
+                                </p>
+                            </div>""", unsafe_allow_html=True)
+                        st.markdown("</div>", unsafe_allow_html=True)
                     
                     # Display last updated
                     st.caption(f"Information last updated: {interview['last_updated']}")
