@@ -4,6 +4,7 @@ from dotenv import load_dotenv, find_dotenv
 from modules.resume_optimizer import ResumeOptimizer
 from modules.outreach import OutreachManager
 from modules.job_discovery import JobDiscoveryManager
+from modules.interview_prep import InterviewPrepManager
 import json
 import logging
 
@@ -28,7 +29,7 @@ st.set_page_config(page_title="Job Hunt Assistant", layout="wide")
 st.title("Your Job Hunt Assistant")
 
 # Create tabs for navigation
-resume_tab, outreach_tab, discovery_tab = st.tabs(["📝 Resume Optimization", "✉️ Outreach", "🔍 Job Discovery"])
+resume_tab, outreach_tab, discovery_tab, interview_tab = st.tabs(["📝 Resume Optimization", "✉️ Outreach", "🔍 Job Discovery", "🎯 Interview Prep"])
 
 with resume_tab:
     st.header("Resume Optimization")
@@ -330,3 +331,103 @@ with discovery_tab:
                         st.markdown(f"[🔗 Apply Now]({job['link']})")
         except Exception as e:
             st.error(f"An error occurred during job search: {str(e)}")
+
+with interview_tab:
+    st.header("Interview Preparation")
+    
+    # Initialize interview prep manager
+    if 'interview_prep_manager' not in st.session_state:
+        st.session_state.interview_prep_manager = InterviewPrepManager()
+    
+    # Input for company URL or job posting
+    company_url = st.text_input(
+        "Enter Company Website or Job Posting URL",
+        help="Enter the URL of the company's website or job posting to get reviews and interview details"
+    )
+    
+    # Button to get company info
+    if st.button("Get Company Information"):
+        try:
+            with st.spinner("Fetching company reviews and interview process..."):
+                result = st.session_state.interview_prep_manager.get_company_info(company_url)
+                
+                if result:
+                    # Display company reviews
+                    st.subheader("🏢 Company Reviews")
+                    review = result["company_review"]
+                    
+                    # Create columns for ratings
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.metric("Overall Rating", f"{review['overall_rating']:.1f}/5.0")
+                        st.metric("Work-Life Balance", f"{review['work_life_balance']:.1f}/5.0")
+                    with col2:
+                        st.metric("Compensation", f"{review['compensation']:.1f}/5.0")
+                        st.metric("Career Growth", f"{review['career_growth']:.1f}/5.0")
+                    with col3:
+                        st.metric("Company Culture", f"{review['culture']:.1f}/5.0")
+                    
+                    # Display pros and cons
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.write("✅ Pros:")
+                        for pro in review['pros']:
+                            st.write(f"- {pro}")
+                    with col2:
+                        st.write("⚠️ Cons:")
+                        for con in review['cons']:
+                            st.write(f"- {con}")
+                    
+                    # Display additional metrics if any
+                    if review['additional_metrics']:
+                        st.subheader("Additional Metrics")
+                        for metric, value in review['additional_metrics'].items():
+                            st.metric(metric.replace("_", " ").title(), f"{value:.1f}/5.0")
+                    
+                    # Display review sources
+                    if review.get('sources'):
+                        st.subheader("📚 Review Sources")
+                        for source in review['sources']:
+                            st.markdown(f"🔗 [{source}]({source})")
+                    
+                    st.divider()
+                    
+                    # Display interview process
+                    st.subheader("🎯 Interview Process for Data Science/Analytics")
+                    interview = result["interview_process"]
+                    
+                    # Display interview details
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.metric("Role", interview['role'])
+                        st.metric("Difficulty", f"{interview['difficulty']:.1f}/5.0")
+                    with col2:
+                        st.metric("Duration", interview['duration'])
+                    
+                    # Display interview stages
+                    st.write("📝 Interview Stages:")
+                    for i, stage in enumerate(interview['stages'], 1):
+                        st.write(f"{i}. {stage}")
+                    
+                    # Display common questions
+                    st.write("❓ Common Technical Questions:")
+                    for question in interview['common_questions']:
+                        st.write(f"- {question}")
+                    
+                    # Display tips
+                    st.write("💡 Tips from Successful Candidates:")
+                    for tip in interview['tips']:
+                        st.write(f"- {tip}")
+                    
+                    # Display interview sources
+                    if interview.get('sources'):
+                        st.subheader("📚 Interview Process Sources")
+                        for source in interview['sources']:
+                            st.markdown(f"🔗 [{source}]({source})")
+                    
+                    # Display last updated
+                    st.caption(f"Information last updated: {interview['last_updated']}")
+                else:
+                    st.error("Could not fetch company information. Please try again.")
+        except Exception as e:
+            st.error(f"Error occurred while fetching company information: {e}")
