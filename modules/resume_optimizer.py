@@ -105,7 +105,7 @@ class ResumeOptimizer:
         
         # Get optimization suggestions
         optimization_chain = LLMChain(llm=self.llm, prompt=self.resume_optimization_prompt)
-        optimization_analysis = optimization_chain.run({
+        analysis = optimization_chain.run({
             'resume_text': resume_text,
             'job_requirements': job_requirements
         })
@@ -141,7 +141,7 @@ class ResumeOptimizer:
         optimized_content = optimization_content_chain.run({
             'resume_text': resume_text,
             'job_requirements': job_requirements,
-            'analysis': optimization_analysis
+            'analysis': analysis
         })
         
         # Generate a concise summary of changes
@@ -175,7 +175,7 @@ class ResumeOptimizer:
         optimized_pdf = self._create_optimized_pdf(resume_file, resume_text, optimized_content)
         
         return {
-            'analysis': optimization_analysis,
+            'analysis': analysis,
             'changes_summary': changes_summary,
             'optimized_resume': optimized_pdf,
             'original_text': resume_text,
