@@ -103,57 +103,125 @@ class ResumeOptimizer:
         # Extract resume text
         resume_text = self._extract_resume_text(resume_file)
         
-        # Analyze resume optimization
+        # Get optimization suggestions
         optimization_chain = LLMChain(llm=self.llm, prompt=self.resume_optimization_prompt)
         optimization_analysis = optimization_chain.run({
             'resume_text': resume_text,
             'job_requirements': job_requirements
         })
         
+        # Generate optimized content
+        optimization_content_chain = LLMChain(
+            llm=self.llm,
+            prompt=PromptTemplate(
+                input_variables=["resume_text", "job_requirements", "analysis"],
+                template="""Based on the original resume and job requirements, provide an optimized version of the resume content. 
+                Maintain the same structure but enhance the content to better match the job requirements.
+                
+                Original Resume:
+                {resume_text}
+                
+                Job Requirements:
+                {job_requirements}
+                
+                Analysis:
+                {analysis}
+                
+                Instructions:
+                1. Keep the same sections and overall format
+                2. Enhance bullet points to highlight relevant skills
+                3. Adjust wording to match job requirements
+                4. Maintain a professional tone
+                5. Keep content within one page
+                
+                Return the optimized resume content in the exact same format as the original."""
+            )
+        )
+        
+        optimized_content = optimization_content_chain.run({
+            'resume_text': resume_text,
+            'job_requirements': job_requirements,
+            'analysis': optimization_analysis
+        })
+        
         # Generate a concise summary of changes
         summary_chain = LLMChain(
             llm=self.llm,
             prompt=PromptTemplate(
-                input_variables=["analysis"],
-                template="""Based on the resume analysis, provide a clear, bullet-point summary of the key changes and improvements recommended. Focus on specific, actionable items.
+                input_variables=["original", "optimized"],
+                template="""Compare the original and optimized resumes and list the specific changes made:
 
-                Analysis:
-                {analysis}
+                Original Resume:
+                {original}
 
-                Format your response as bullet points, with each point being a specific recommendation. Be concise and clear."""
+                Optimized Resume:
+                {optimized}
+
+                Provide a bullet-point list of specific changes made, such as:
+                - Added/modified skills
+                - Enhanced job descriptions
+                - Updated terminology
+                - Restructured sections
+                
+                Be specific and concrete about each change."""
             )
         )
-        changes_summary = summary_chain.run(optimization_analysis)
+        changes_summary = summary_chain.run({
+            'original': resume_text,
+            'optimized': optimized_content
+        })
         
-        # Create optimized PDF
-        optimized_pdf = self._create_optimized_pdf(resume_file)
+        # Create optimized PDF with highlighted changes
+        optimized_pdf = self._create_optimized_pdf(resume_file, resume_text, optimized_content)
         
         return {
             'analysis': optimization_analysis,
             'changes_summary': changes_summary,
-            'optimized_resume': optimized_pdf
+            'optimized_resume': optimized_pdf,
+            'original_text': resume_text,
+            'optimized_text': optimized_content
         }
-    
-    def _create_optimized_pdf(self, original_resume):
+
+    def _create_optimized_pdf(self, original_resume, original_text, optimized_text):
         """
-        Create an optimized PDF that is exactly the same as the original
-        Ensures only one page is preserved
+        Create an optimized PDF with highlighted changes
         """
-        # Read original PDF
-        original_pdf = PdfReader(original_resume)
-        original_page = original_pdf.pages[0]
-        
-        # Create a new PDF with only the first page
+        # Create a new PDF
         output = PdfWriter()
-        output.add_page(original_page)
-        
-        # Save to a BytesIO buffer
         pdf_buffer = BytesIO()
-        output.write(pdf_buffer)
+        
+        # Create the first page with optimized content
+        c = canvas.Canvas(pdf_buffer, pagesize=letter)
+        width, height = letter
+        
+        # Set font and size
+        c.setFont("Helvetica", 10)
+        y_position = height - inch  # Start 1 inch from top
+        
+        # Split content into lines
+        lines = optimized_text.split('\n')
+        
+        # Write each line
+        for line in lines:
+            if y_position < inch:  # Ensure we stay within page bounds
+                break
+            c.drawString(inch, y_position, line.strip())
+            y_position -= 12  # Adjust line spacing
+        
+        c.save()
         pdf_buffer.seek(0)
         
-        return pdf_buffer
-    
+        # Add the page to output
+        optimized_pdf = PdfReader(pdf_buffer)
+        output.add_page(optimized_pdf.pages[0])
+        
+        # Save to a new buffer
+        final_buffer = BytesIO()
+        output.write(final_buffer)
+        final_buffer.seek(0)
+        
+        return final_buffer
+
     def _extract_resume_text(self, resume_file):
         """
         Extract text from uploaded resume

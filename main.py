@@ -55,7 +55,7 @@ if page == "Resume Optimization":
     if st.button("Optimize Resume"):
         if resume_file is not None and (job_description or job_url):
             try:
-                with st.spinner("Analyzing your resume..."):
+                with st.spinner("Analyzing and optimizing your resume..."):
                     # Perform resume optimization
                     optimizer = ResumeOptimizer()
                     result = optimizer.analyze_resume(
@@ -65,30 +65,39 @@ if page == "Resume Optimization":
                     )
                 
                 # Display Optimization Results
-                st.success("✅ Resume analysis completed!")
+                st.success("✅ Resume optimization completed!")
                 
                 # Display recommended changes prominently
-                st.subheader("📝 Recommended Optimizations")
+                st.subheader("📝 Changes Made to Your Resume")
                 st.info(result['changes_summary'])
                 
-                # Create two columns for download and detailed analysis
-                col1, col2 = st.columns(2)
+                # Create tabs for different views
+                original_tab, optimized_tab, analysis_tab = st.tabs([
+                    "Original Resume", 
+                    "Optimized Resume", 
+                    "Detailed Analysis"
+                ])
                 
-                with col1:
-                    # Download button with clear indication of changes
-                    st.markdown("### Download Optimized Resume")
+                with original_tab:
+                    st.markdown("### Original Content")
+                    st.text_area("", result['original_text'], height=300, disabled=True)
+                
+                with optimized_tab:
+                    st.markdown("### Optimized Content")
+                    st.text_area("", result['optimized_text'], height=300, disabled=True)
+                    
+                    # Download button in the optimized tab
                     st.download_button(
-                        label="📄 Download Resume with Changes",
+                        label="📄 Download Optimized Resume",
                         data=result['optimized_resume'],
                         file_name="optimized_resume.pdf",
-                        mime="application/pdf"
+                        mime="application/pdf",
+                        help="Download your resume optimized for this job position"
                     )
                 
-                with col2:
-                    # Detailed analysis in an expander
-                    with st.expander("View Detailed Analysis"):
-                        st.markdown("### Full Analysis")
-                        st.write(result['analysis'])
+                with analysis_tab:
+                    st.markdown("### Full Analysis")
+                    st.write(result['analysis'])
                 
             except Exception as e:
                 st.error(f"An error occurred during resume optimization: {e}")
