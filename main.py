@@ -274,6 +274,8 @@ with discovery_tab:
     
     # Search button
     if st.button("Search Job Openings"):
+        if not st.session_state.get('job_preferences'):
+            st.warning("⚠️ No resume preferences found. Please upload your resume and click 'Extract Preferences from Resume' first for better job matches.")
         try:
             with st.spinner("Searching for relevant job openings..."):
                 # Format background from preferences

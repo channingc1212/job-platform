@@ -153,14 +153,23 @@ class JobDiscoveryManager:
             messages = [
                 {
                     "role": "system",
-                    "content": "You are a helpful assistant that finds current job openings based on candidate background and requirements. Return ONLY a JSON array containing relevant job listings that match BOTH the candidate's background AND their additional criteria."
+                    "content": "You are a helpful assistant that finds current job openings based on candidate background and requirements. Focus on the following criteria:\n\n" 
+                               "1. Job Functions: Analytics or Data Science roles\n" 
+                               "2. Industry: Technology\n" 
+                               "3. Company Stage: Series B or later\n" 
+                               "4. Location: San Francisco Bay Area or Remote\n" 
+                               "5. Company Type: US-based companies only\n\n" 
+                               "Return ONLY a JSON array containing relevant job listings that match BOTH:\n" 
+                               "- The candidate's background and requirements\n" 
+                               "- The default criteria listed above\n\n" 
+                               "Ensure all returned jobs are currently open positions."
                 },
                 {
                     "role": "user",
                     "content": f"Find current job openings matching the following candidate profile and requirements:\n\n"
                                f"Candidate Background & Preferences:\n{background}\n\n"
                                f"Additional Requirements:\n{criteria if criteria else 'None specified'}\n\n"
-                               f"Instructions:\n"
+                               f"Additional Instructions:\n"
                                f"1. Return response in this exact JSON format:\n"
                                f"[{{"
                                f"\n  \"title\": \"Job Title\","
