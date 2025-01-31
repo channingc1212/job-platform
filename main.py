@@ -132,8 +132,25 @@ if page == "Resume Optimization":
 elif page == "Outreach":
     st.header("Outreach Message Generator")
     
+    # Initialize session state for outreach
+    if 'outreach_result' not in st.session_state:
+        st.session_state.outreach_result = None
+    if 'feedback_submitted' not in st.session_state:
+        st.session_state.feedback_submitted = False
+    if 'resume_content' not in st.session_state:
+        st.session_state.resume_content = None
+    if 'outreach_manager' not in st.session_state:
+        st.session_state.outreach_manager = OutreachManager()
+    
     # Resume upload section
     resume_file = st.file_uploader("Upload Your Resume (PDF)", type=["pdf"], key="outreach_resume")
+    
+    # Store resume content when a new file is uploaded
+    if resume_file is not None and (st.session_state.resume_content is None or 
+        resume_file.name != st.session_state.get('last_resume_name')):
+        st.session_state.resume_content = resume_file.read()
+        st.session_state.last_resume_name = resume_file.name
+        resume_file.seek(0)  # Reset file pointer after reading
     
     # Job URL input
     job_url = st.text_input("Job Posting URL", 
@@ -145,25 +162,71 @@ elif page == "Outreach":
         help="Add any specific points about why you're excited about this opportunity"
     )
     
+    # Generate initial message
     if st.button("Generate Message") and resume_file and job_url:
         try:
-            outreach = OutreachManager()
             with st.spinner("Analyzing resume and job posting..."):
-                message = outreach.generate_message(
+                result = st.session_state.outreach_manager.generate_message(
                     resume_file=resume_file,
                     job_url=job_url,
                     specific_interests=specific_interests
                 )
-                
-                if message.startswith("Error:"):
-                    st.error(message)
-                else:
-                    st.success("✅ Message generated successfully!")
-                    st.subheader("Generated Message")
-                    st.text_area(
-                        "Copy and customize as needed:",
-                        message,
-                        height=300
-                    )
+                st.session_state.outreach_result = result
+                st.session_state.feedback_submitted = False
         except Exception as e:
             st.error(f"An error occurred: {str(e)}")
+    
+    # Display message and feedback section
+    if st.session_state.outreach_result:
+        result = st.session_state.outreach_result
+        
+        if 'error' in result:
+            st.error(result['error'])
+        else:
+            st.success("✅ Message generated successfully!")
+            st.subheader("Generated Message")
+            
+            # Display the message
+            message_area = st.text_area(
+                "Copy and customize as needed:",
+                result['message'],
+                height=300,
+                key="current_message"
+            )
+            
+            # Feedback section
+            st.divider()
+            with st.expander("✨ Want to improve this message? Add your feedback!"):
+                feedback = st.text_area(
+                    "What would you like to change about this message?",
+                    placeholder="Example: Make it more casual, focus more on technical skills, etc.",
+                    help="Your feedback will be used to generate a new version of the message"
+                )
+                
+                if st.button("Regenerate with Feedback") and feedback:
+                    try:
+                        with st.spinner("Regenerating message with your feedback..."):
+                            # Create feedback dict with previous message and feedback
+                            feedback_dict = {
+                                'previous_message': result['message'],
+                                'feedback': feedback
+                            }
+                            
+                            # Use stored resume content for regeneration
+                            from io import BytesIO
+                            resume_buffer = BytesIO(st.session_state.resume_content)
+                            resume_buffer.name = st.session_state.last_resume_name  # Set name for file type detection
+                            
+                            # Regenerate message using stored outreach manager
+                            new_result = st.session_state.outreach_manager.generate_message(
+                                resume_file=resume_buffer,
+                                job_url=job_url,
+                                specific_interests=specific_interests,
+                                user_feedback=feedback_dict
+                            )
+                            
+                            st.session_state.outreach_result = new_result
+                            st.session_state.feedback_submitted = True
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"An error occurred while regenerating: {str(e)}")

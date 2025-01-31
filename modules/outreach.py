@@ -128,7 +128,7 @@ class OutreachManager:
             logging.error(f"Error extracting background: {e}")
             return None
 
-    def generate_message(self, resume_file, job_url: str, specific_interests: str = "") -> str:
+    def generate_message(self, resume_file, job_url: str, specific_interests: str = "", user_feedback: str = None) -> dict:
         """
         Generate a personalized outreach message based on resume and job URL
         """
@@ -136,20 +136,72 @@ class OutreachManager:
             # Extract background from resume
             background = self.extract_background(resume_file)
             if not background:
-                return "Error: Could not extract background from resume"
+                return {"error": "Could not extract background from resume"}
             
             # Extract job info from URL
             job_info = self.extract_job_info(job_url)
             if not job_info:
-                return "Error: Could not extract job information from URL"
+                return {"error": "Could not extract job information from URL"}
             
-            # Generate message
-            message = self.outreach_chain.run({
-                "company_name": job_info['company_name'] or "the company",
-                "role": job_info['job_description'] or "the role",
-                "background": background,
-                "interests": specific_interests
-            })
-            return message
+            # Create base prompt
+            prompt = self.outreach_prompt
+            
+            # If user feedback exists, create a regeneration prompt
+            if user_feedback:
+                prompt = PromptTemplate(
+                    input_variables=["company_name", "role", "background", "interests", "previous_message", "feedback"],
+                    template="""
+                    Regenerate the outreach message with the following details and feedback:
+                    
+                    Company: {company_name}
+                    Role: {role}
+                    Your Background: {background}
+                    Why Interested: {interests}
+                    
+                    Previous Message:
+                    {previous_message}
+                    
+                    User Feedback:
+                    {feedback}
+                    
+                    The message should:
+                    1. Be concise but engaging
+                    2. Show genuine interest in the company and role
+                    3. Highlight relevant experience
+                    4. Include a clear call to action
+                    5. Maintain a professional yet conversational tone
+                    6. Avoid the tone of a formal or AI-generated message
+                    7. Incorporate the user's feedback while maintaining quality
+                    
+                    Write the message in a format suitable for LinkedIn or email:
+                    """
+                )
+                
+                # Create a new chain for regeneration
+                regen_chain = LLMChain(llm=self.llm, prompt=prompt)
+                
+                # Generate message with feedback
+                message = regen_chain.run({
+                    "company_name": job_info['company_name'] or "the company",
+                    "role": job_info['job_description'] or "the role",
+                    "background": background,
+                    "interests": specific_interests,
+                    "previous_message": user_feedback.get('previous_message', ''),
+                    "feedback": user_feedback.get('feedback', '')
+                })
+            else:
+                # Generate initial message
+                message = self.outreach_chain.run({
+                    "company_name": job_info['company_name'] or "the company",
+                    "role": job_info['job_description'] or "the role",
+                    "background": background,
+                    "interests": specific_interests
+                })
+            
+            return {
+                "message": message,
+                "job_info": job_info,
+                "background": background
+            }
         except Exception as e:
-            return f"Error generating message: {str(e)}"
+            return {"error": str(e)}
