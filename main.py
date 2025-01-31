@@ -3,6 +3,8 @@ import os
 from dotenv import load_dotenv, find_dotenv
 from modules.resume_optimizer import ResumeOptimizer
 from modules.outreach import OutreachManager
+from modules.job_discovery import JobDiscoveryManager
+import json
 import logging
 
 # Configure logging
@@ -23,15 +25,12 @@ if not api_key:
     st.stop()
 
 st.set_page_config(page_title="Job Hunt Assistant", layout="wide")
-st.title("Job Hunt Assistant")
+st.title("Your Job Hunt Assistant")
 
-# Create a sidebar for navigation
-page = st.sidebar.selectbox(
-    "Select a Tool",
-    ["Resume Optimization", "Outreach"]
-)
+# Create tabs for navigation
+resume_tab, outreach_tab, discovery_tab = st.tabs(["📝 Resume Optimization", "✉️ Outreach", "🔍 Job Discovery"])
 
-if page == "Resume Optimization":
+with resume_tab:
     st.header("Resume Optimization")
     
     # Job Description Input
@@ -129,7 +128,7 @@ if page == "Resume Optimization":
         else:
             st.warning("Please upload a resume and provide a job description or URL.")
     
-elif page == "Outreach":
+with outreach_tab:
     st.header("Outreach Message Generator")
     
     # Initialize session state for outreach
@@ -230,3 +229,102 @@ elif page == "Outreach":
                             st.rerun()
                     except Exception as e:
                         st.error(f"An error occurred while regenerating: {str(e)}")
+
+with discovery_tab:
+    st.header("Job Opening Discovery")
+    
+    # Initialize session state for job discovery
+    if 'job_discovery_manager' not in st.session_state:
+        st.session_state.job_discovery_manager = JobDiscoveryManager()
+    if 'job_preferences' not in st.session_state:
+        st.session_state.job_preferences = None
+    
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Resume upload for automatic preference extraction
+        resume_file = st.file_uploader(
+            "Upload Your Resume (Optional)",
+            type=["pdf"],
+            key="discovery_resume",
+            help="Upload your resume to automatically extract job preferences"
+        )
+        
+        # Manual criteria input
+        manual_criteria = st.text_area(
+            "Additional Job Search Criteria",
+            placeholder="Example: Remote work, Series B startups, AI/ML focus, etc.",
+            help="Add any specific preferences not in your resume"
+        )
+        
+        # Extract preferences from resume
+        if resume_file and st.button("Extract Preferences from Resume"):
+            with st.spinner("Analyzing your resume..."):
+                preferences = st.session_state.job_discovery_manager.extract_preferences(resume_file)
+                if preferences:
+                    st.session_state.job_preferences = preferences
+                    st.success("✅ Successfully extracted preferences from resume!")
+                else:
+                    st.error("Could not extract preferences from resume")
+    
+    with col2:
+        if st.session_state.job_preferences:
+            st.subheader("Extracted Preferences")
+            st.json(st.session_state.job_preferences)
+    
+    # Search button
+    if st.button("Search Job Openings"):
+        try:
+            with st.spinner("Searching for relevant job openings..."):
+                # Format background from preferences
+                background = ""
+                if st.session_state.job_preferences:
+                    prefs = st.session_state.job_preferences
+                    if prefs.get('skills'):
+                        background += f"Skills: {', '.join(prefs['skills'])}\n"
+                    if prefs.get('industries'):
+                        background += f"Industries: {', '.join(prefs['industries'])}\n"
+                    if prefs.get('role_level'):
+                        background += f"Role Level: {prefs['role_level']}\n"
+                    if prefs.get('preferred_companies'):
+                        background += f"Preferred Companies: {', '.join(prefs['preferred_companies'])}\n"
+                    if prefs.get('education'):
+                        edu = prefs['education']
+                        background += f"Education: {edu.get('degree', 'N/A')} in {edu.get('field', 'N/A')}"
+                else:
+                    background = "No resume preferences extracted"
+                
+                # Search for jobs using both background and criteria
+                jobs = st.session_state.job_discovery_manager.search_job_openings(
+                    background=background,
+                    criteria=manual_criteria or ""
+                )
+                all_jobs = jobs if jobs else []
+                
+                # Display results
+                st.subheader(f"Found {len(all_jobs)} Relevant Openings")
+                
+                for job in all_jobs:
+                    with st.expander(f"{job['title']} at {job['company']}"):
+                        st.write(f"🏢 **Company:** {job['company']}")
+                        st.write(f"📍 **Location:** {job['location']}")
+                        st.write(f"📅 **Posted:** {job['posted_date']}")
+                        
+                        # Get company info
+                        company_info = st.session_state.job_discovery_manager.get_company_info(job['company'])
+                        if company_info:
+                            st.write("---")
+                            st.write("### Company Information")
+                            for key, value in company_info.items():
+                                st.write(f"**{key.replace('_', ' ').title()}:** {value}")
+                        
+                        st.write("---")
+                        st.write("### Job Description")
+                        st.write(job['description'])
+                        
+                        st.write("### Requirements")
+                        st.write(job['requirements'])
+                        
+                        st.markdown(f"[🔗 Apply Now]({job['link']})")
+        except Exception as e:
+            st.error(f"An error occurred during job search: {str(e)}")
