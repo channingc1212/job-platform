@@ -80,11 +80,31 @@ if page == "Resume Optimization":
                 
                 with original_tab:
                     st.markdown("### Original Content")
-                    st.text_area("", result['original_text'], height=300, disabled=True)
+                    st.text_area(
+                        "",
+                        result['original_text'],
+                        height=400,
+                        disabled=True,
+                        key="original_text",
+                        label_visibility="collapsed",
+                        max_chars=None
+                    )
                 
                 with optimized_tab:
                     st.markdown("### Optimized Content")
-                    st.text_area("", result['optimized_text'], height=300, disabled=True)
+                    st.text_area(
+                        "",
+                        result['optimized_text'],
+                        height=400,
+                        disabled=True,
+                        key="optimized_text",
+                        label_visibility="collapsed",
+                        max_chars=None
+                    )
+                    
+                    # Store optimization result in session state
+                    if 'optimization_result' not in st.session_state:
+                        st.session_state['optimization_result'] = result
                     
                     # Download button in the optimized tab
                     st.download_button(
@@ -92,7 +112,9 @@ if page == "Resume Optimization":
                         data=result['optimized_resume'],
                         file_name="optimized_resume.pdf",
                         mime="application/pdf",
-                        help="Download your resume optimized for this job position"
+                        help="Download your resume optimized for this job position",
+                        use_container_width=True,
+                        key="download_button"
                     )
                 
                 with analysis_tab:

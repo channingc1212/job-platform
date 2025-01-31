@@ -224,7 +224,42 @@ class ResumeOptimizer:
 
     def _extract_resume_text(self, resume_file):
         """
-        Extract text from uploaded resume
+        Extract text from uploaded resume with improved formatting and structure preservation
         """
         pdf_reader = PdfReader(resume_file)
-        return "\n".join(page.extract_text() for page in pdf_reader.pages)
+        text_content = []
+        
+        for page in pdf_reader.pages:
+            # Extract text with better whitespace handling
+            text = page.extract_text()
+            
+            # Split into sections and clean up
+            sections = text.split('\n\n')
+            cleaned_sections = []
+            
+            for section in sections:
+                # Clean up each section while preserving structure
+                lines = section.split('\n')
+                cleaned_lines = []
+                
+                for line in lines:
+                    # Remove excessive spaces while preserving indentation
+                    cleaned = ' '.join(line.split())
+                    if cleaned:  # Only add non-empty lines
+                        cleaned_lines.append(cleaned)
+                
+                if cleaned_lines:  # Only add non-empty sections
+                    cleaned_sections.append('\n'.join(cleaned_lines))
+            
+            # Join sections with proper spacing
+            text_content.extend(cleaned_sections)
+            text_content.append('')  # Add blank line between pages
+        
+        # Create final formatted text
+        final_text = '\n\n'.join(text_content)
+        
+        # Clean up any remaining formatting issues
+        while '\n\n\n' in final_text:
+            final_text = final_text.replace('\n\n\n', '\n\n')
+        
+        return final_text.strip()
