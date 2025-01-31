@@ -131,26 +131,39 @@ if page == "Resume Optimization":
     
 elif page == "Outreach":
     st.header("Outreach Message Generator")
-    col1, col2 = st.columns(2)
     
-    with col1:
-        company_name = st.text_input("Company Name")
-        contact_name = st.text_input("Contact Name (if known)")
-        role = st.text_input("Role you're interested in")
+    # Resume upload section
+    resume_file = st.file_uploader("Upload Your Resume (PDF)", type=["pdf"], key="outreach_resume")
     
-    with col2:
-        your_background = st.text_area("Brief description of your background")
-        specific_interests = st.text_area("Why are you interested in this company/role?")
+    # Job URL input
+    job_url = st.text_input("Job Posting URL", 
+                          help="Paste the URL of the job posting you're interested in")
     
-    if st.button("Generate Message") and company_name and role:
-        outreach = OutreachManager()
-        with st.spinner("Generating personalized message..."):
-            message = outreach.generate_message(
-                company_name=company_name,
-                contact_name=contact_name,
-                role=role,
-                background=your_background,
-                interests=specific_interests
-            )
-            st.subheader("Generated Message")
-            st.text_area("Copy and customize as needed:", message, height=300)
+    # Optional specific interests
+    specific_interests = st.text_area(
+        "Why are you specifically interested in this role? (Optional)",
+        help="Add any specific points about why you're excited about this opportunity"
+    )
+    
+    if st.button("Generate Message") and resume_file and job_url:
+        try:
+            outreach = OutreachManager()
+            with st.spinner("Analyzing resume and job posting..."):
+                message = outreach.generate_message(
+                    resume_file=resume_file,
+                    job_url=job_url,
+                    specific_interests=specific_interests
+                )
+                
+                if message.startswith("Error:"):
+                    st.error(message)
+                else:
+                    st.success("✅ Message generated successfully!")
+                    st.subheader("Generated Message")
+                    st.text_area(
+                        "Copy and customize as needed:",
+                        message,
+                        height=300
+                    )
+        except Exception as e:
+            st.error(f"An error occurred: {str(e)}")
