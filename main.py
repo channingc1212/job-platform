@@ -63,6 +63,9 @@ if page == "Resume Optimization":
                         job_description=job_description, 
                         job_url=job_url
                     )
+
+                    # Store result in session state
+                    st.session_state.optimization_result = result
                 
                 # Display Optimization Results
                 st.success("✅ Resume optimization completed!")
@@ -82,7 +85,7 @@ if page == "Resume Optimization":
                     st.markdown("### Original Content")
                     st.text_area(
                         "",
-                        result['original_text'],
+                        st.session_state.optimization_result['original_text'],
                         height=400,
                         disabled=True,
                         key="original_text",
@@ -94,7 +97,7 @@ if page == "Resume Optimization":
                     st.markdown("### Optimized Content")
                     st.text_area(
                         "",
-                        result['optimized_text'],
+                        st.session_state.optimization_result['optimized_text'],
                         height=400,
                         disabled=True,
                         key="optimized_text",
@@ -109,7 +112,7 @@ if page == "Resume Optimization":
                     # Download button in the optimized tab
                     st.download_button(
                         label="📄 Download Optimized Resume",
-                        data=result['optimized_resume'],
+                        data=st.session_state.optimization_result['optimized_resume'],
                         file_name="optimized_resume.pdf",
                         mime="application/pdf",
                         help="Download your resume optimized for this job position",
