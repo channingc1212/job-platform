@@ -308,27 +308,73 @@ with discovery_tab:
                 st.subheader(f"Found {len(all_jobs)} Relevant Openings")
                 
                 for job in all_jobs:
-                    with st.expander(f"{job['title']} at {job['company']}"):
-                        st.write(f"🏢 **Company:** {job['company']}")
-                        st.write(f"📍 **Location:** {job['location']}")
-                        st.write(f"📅 **Posted:** {job['posted_date']}")
+                    # Check if we have valid company name and title
+                    job_title = job.get('title', 'Unknown Position')
+                    company_name = job.get('company', 'Unknown Company')
+                    
+                    # Create a better formatted expander title
+                    expander_title = f"{job_title} at {company_name}"
+                    
+                    with st.expander(expander_title):
+                        # Create two columns for job details
+                        col1, col2 = st.columns([3, 1])
+                        
+                        with col1:
+                            # Display basic job information
+                            st.markdown(f"### {job_title}")
+                            st.markdown(f"**🏢 Company:** {company_name}")
+                            st.markdown(f"**📍 Location:** {job.get('location', 'Unknown Location')}")
+                            st.markdown(f"**📅 Posted:** {job.get('posted_date', 'Unknown')}")
+                            if job.get('salary'):
+                                st.markdown(f"**💰 Salary:** {job.get('salary')}")
+                        
+                        with col2:
+                            # Display application button prominently
+                            app_link = job.get('link', 'https://www.linkedin.com/jobs/')
+                            st.markdown(f"""
+                            <div style='background-color: #f0f8ff; padding: 15px; border-radius: 10px; text-align: center; margin-top: 20px;'>
+                                <a href='{app_link}' target='_blank' style='text-decoration: none;'>
+                                    <div style='background-color: #0366d6; color: white; padding: 10px; border-radius: 5px; font-weight: bold;'>
+                                        Apply Now
+                                    </div>
+                                </a>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
+                        # Display job description
+                        st.markdown("### Job Description")
+                        st.markdown(job.get('description', 'No description available'))
+                        
+                        # Display requirements as a bulleted list
+                        st.markdown("### Requirements")
+                        requirements = job.get('requirements', [])
+                        if requirements:
+                            for req in requirements:
+                                st.markdown(f"- {req}")
+                        else:
+                            st.markdown("No specific requirements listed")
                         
                         # Get company info
-                        company_info = st.session_state.job_discovery_manager.get_company_info(job['company'])
+                        company_info = st.session_state.job_discovery_manager.get_company_info(company_name)
                         if company_info:
-                            st.write("---")
-                            st.write("### Company Information")
-                            for key, value in company_info.items():
-                                st.write(f"**{key.replace('_', ' ').title()}:** {value}")
-                        
-                        st.write("---")
-                        st.write("### Job Description")
-                        st.write(job['description'])
-                        
-                        st.write("### Requirements")
-                        st.write(job['requirements'])
-                        
-                        st.markdown(f"[🔗 Apply Now]({job['link']})")
+                            st.markdown("---")
+                            st.markdown("### Company Information")
+                            
+                            # Check if we have multiple companies
+                            if "companies" in company_info and isinstance(company_info["companies"], list):
+                                # Display each company in a separate section
+                                for i, company in enumerate(company_info["companies"]):
+                                    st.markdown(f"#### {company.get('name', f'Company {i+1}')}")
+                                    for key, value in company.items():
+                                        if key != "name":  # Skip name as it's already in the header
+                                            st.markdown(f"**{key.replace('_', ' ').title()}:** {value}")
+                                    if i < len(company_info["companies"]) - 1:
+                                        st.markdown("---")
+                            else:
+                                # Display single company info
+                                for key, value in company_info.items():
+                                    if key != "name":  # Skip name as it's already in the header
+                                        st.markdown(f"**{key.replace('_', ' ').title()}:** {value}")
         except Exception as e:
             st.error(f"An error occurred during job search: {str(e)}")
 
